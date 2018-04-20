@@ -95,8 +95,52 @@ sardius.menu("closed-captions",function(player, options){
     }
   }
 
+  const setHlsSubs = () => {
+    if (sourceHandler.plugin.sardiusHLS.hls) {
+      const getTracks = new Promise((resolve) => {
+        sourceHandler.plugin.sardiusHLS.hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
+          const newTracks = data.subtitleTracks;
+          resolve(newTracks);
+        });
+      });
+
+      getTracks.then((tracks) => {
+        const items = [];
+        for (let i = 0; i < tracks.length; i += 1) {
+          let active = false;
+          if (tracks[i].default === true) {
+            sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
+            active = true;
+          }
+          items.push({
+            classes: 'sp-bitrate-auto',
+            label: tracks[i].name,
+            id: `${i}`,
+            order: i,
+            isActive: active,
+            data: tracks[i],
+            callback: (data, button) => {
+              if (button.isActive) {
+                sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = -1;
+                captions.setActiveItem()
+                sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = false;
+                return;
+              }
+              captions.setActiveItem(button);
+              sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
+              sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = i;
+              player.trigger('audioTrackSwitched', data);
+            },
+          });
+        }
+        captions.addItems(items);
+      });
+    }
+  };
+
   player.on("settingsMenu-SourceHandler-change",(event, SourceHandler) => {
     sourceHandler=SourceHandler;
+    setHlsSubs();
     setCaptions();
   })
   
