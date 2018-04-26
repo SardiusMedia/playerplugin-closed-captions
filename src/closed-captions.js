@@ -22,13 +22,13 @@ sardius.menu("closed-captions",function(player, options){
     classes:"sp-menu",
     id:"sp-bitrate",
     title:"Closed Captions",
-    minItems:1, 
+    minItems:1,
   })
 
   var setCaption = (track)=>{
     if(isSafari){
       return
-    } 
+    }
 
     if(!ccEl){
       ccEl = document.createElement('div');
@@ -44,36 +44,36 @@ sardius.menu("closed-captions",function(player, options){
       ccEl.innerHTML = "";
       return;
     }
-     
+
     player.addRemoteTextTrack({
       kind:"captions",
       label:getMenuLabel(track.label),
       srclang:track.label.toLowerCase(),
       src:track.file,
       mode:'showing'
-    },true) 
+    },true)
 
   }
 
   var setCaptions = ()=>{
-   
+
     var lables = [];
     var items  = [];
 
     if(sourceHandler.captions ){
       for(var i=0; i<sourceHandler.captions.length; i++){
         var cc = sourceHandler.captions[i]
-        if(isSafari){ 
-          
+        if(isSafari){
+
           var remoteTrack={
             kind:"captions",
             label:getMenuLabel(cc.label),
             srclang:cc.label.toLowerCase(),
             src:cc.file,
           }
-          player.addRemoteTextTrack(remoteTrack,true) 
+          player.addRemoteTextTrack(remoteTrack,true)
         }
-       
+
         items.push({
           classes:"sp-bitrate-auto",
           label:getMenuLabel(cc.label),
@@ -89,9 +89,65 @@ sardius.menu("closed-captions",function(player, options){
             setCaption(data)
           }
         })
-         
+
       }
       captions.addItems(items)
+    }
+  }
+
+  const setEmbeddedCaptions = () => {
+    if (sourceHandler.plugin.sardiusHLS.hls) {
+      const getCaptions = new Promise((resolve) => {
+        sourceHandler.plugin.sardiusHLS.hls.on(Hls.Events.FRAG_CHANGED, (event, data) => {
+          const tracks = player.el().getElementsByTagName("video")[0].textTracks;
+          const closedCaptionsElement = document.getElementsByClassName('vjs-icon-captions')[0];
+          const isElementHidden = closedCaptionsElement.classList.contains('vjs-hidden');
+          if (captions.items.length === 0 && isElementHidden === false) {
+            closedCaptionsElement.classList.add('vjs-hidden');
+          }
+          if (tracks.length !== 0 && captions.items.length === 0) {
+            resolve(tracks);
+          } else if (tracks.length === 0 && isElementHidden === false) {
+            closedCaptionsElement.classList.add('vjs-hidden');
+          }
+        });
+      })
+
+      getCaptions.then((tracks) => {
+        const items = [];
+        for (let i = 0; i < tracks.length; i += 1) {
+          let sortOrder = tracks.length - i;
+          if (tracks[i].language === 'es') {
+            sortOrder = -1;
+          }
+          items.push({
+            classes: 'sp-bitrate-auto',
+            label: tracks[i].name || tracks[i].label,
+            id: `${i}`,
+            order: sortOrder,
+            isActive: false,
+            data: tracks,
+            callback: (data, button) => {
+              if (button.isActive) {
+                tracks[i].mode = 'disabled';
+                captions.setActiveItem();
+                return;
+              }
+              if (i === 0 && tracks.length > 1) {
+                tracks[1].mode = 'disabled';
+              } else if (tracks.length > 1) {
+                tracks[0].mode = 'disabled';
+              }
+              tracks[i].mode = 'showing';
+              captions.setActiveItem(button);
+              player.trigger('embeddedCaptionSwitched', data);
+            },
+          });
+        }
+        captions.addItems(items);
+      }).catch((e)=>{
+        throw(e)
+      });
     }
   }
 
@@ -140,14 +196,15 @@ sardius.menu("closed-captions",function(player, options){
 
   player.on("settingsMenu-SourceHandler-change",(event, SourceHandler) => {
     sourceHandler=SourceHandler;
+    setEmbeddedCaptions();
     setHlsSubs();
     setCaptions();
   })
-  
-  function cueChange(){  
+
+  function cueChange(){
       if(isSafari){
         return
-      } 
+      }
       // Do something
       if(typeof ccEl !== "undefined"){
         ccEl.innerHTML = "";
@@ -156,13 +213,13 @@ sardius.menu("closed-captions",function(player, options){
       if(this.activeCues_.length > 0){
         text = this.activeCues_[0].text
         text = text.split(/\n/)
-        player.textTrackDisplay.hide()  
-          
+        player.textTrackDisplay.hide()
+
         var ccLine = document.createElement('div');
         ccLine.className = 'sp-captions-display-line';
         ccLine.innerHTML = "<div class='sp-captions-display-line-text'> "+text.join("<br />")+" </div>";
         ccEl.appendChild(ccLine);
-        
+
       }
   }
 
@@ -173,7 +230,5 @@ sardius.menu("closed-captions",function(player, options){
     activeTrack.addEventListener('cuechange', cueChange);
   });
   return menu
-    
-})
 
-  
+})
