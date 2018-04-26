@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npm run buildBrowserify && npm run buildBabel && npm run buildUglify",
     "build:js": "npm-run-all build:js:babel build:js:browserify build:js:uglify",
-    "buildBabel": "babel ./src/closed-captions.js -o ./src/closed-captions.min.js --presets=es2015",
+    "buildBabel": "babel ./src/closed-captions.js -o ./src/closed-captions.min.js --presets=env",
     "buildBrowserify": "browserify src/closed-captions.min.js -o src/closed-captions.min.js",
     "buildUglify": "uglifyjs ./src/closed-captions.min.js --comments --mangle --compress -o ./src/closed-captions.min.js"
   },
@@ -17,6 +17,7 @@
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
     "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.1",
     "bannerize": "^1.0.2",
     "browserfy": "^1.0.0",
     "browserify": "^12.0.2",
