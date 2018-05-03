@@ -95,8 +95,16 @@ sardius.menu("closed-captions",function(player, options){
     }
   }
 
-  const setEmbeddedCaptions = () => {
+  const setHlsSubs = () => {
     if (sourceHandler.plugin.sardiusHLS.hls) {
+
+      const getTracks = new Promise((resolve) => {
+        sourceHandler.plugin.sardiusHLS.hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
+          const newTracks = data.subtitleTracks;
+          resolve(newTracks);
+        });
+      });
+
       const getCaptions = new Promise((resolve) => {
         sourceHandler.plugin.sardiusHLS.hls.on(Hls.Events.FRAG_CHANGED, (event, data) => {
           const tracks = player.el().getElementsByTagName("video")[0].textTracks;
@@ -107,74 +115,41 @@ sardius.menu("closed-captions",function(player, options){
           }
           if (tracks.length !== 0 && captions.items.length === 0) {
             resolve(tracks);
-          } else if (tracks.length === 0 && isElementHidden === false) {
-            closedCaptionsElement.classList.add('vjs-hidden');
           }
+          // TODO: Decide if Closed Captions Button Should display/remove dynamically
+          // else if (tracks.length === 0 && isElementHidden === false) {
+          //   closedCaptionsElement.classList.add('vjs-hidden');
+          // }
         });
       })
 
-      getCaptions.then((tracks) => {
+      const promises = [getTracks, getCaptions];
+
+      Promise.all(promises).then((tracks) => {
         const items = [];
-        for (let i = 0; i < tracks.length; i += 1) {
-          let sortOrder = tracks.length - i;
-          if (tracks[i].language === 'es') {
-            sortOrder = -1;
+        const subtitles = tracks[0];
+        const allTracks = Array.from(tracks[1]);
+        const combinedTracks = subtitles.concat(allTracks);
+        sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
+        sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = -1;               sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = false;
+        for (let i = 0; i < combinedTracks.length; i += 1) {
+          if (combinedTracks[i].type === 'SUBTITLES') {
+            let active = false;
+            // TODO: automatically turn on sub track if default=true
+            // if (combinedTracks[i].default === true) {
+            //   sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
+            //   active = false;
+            // }
+          if (combinedTracks[i].forced === true) {
+            continue;
           }
           items.push({
             classes: 'sp-bitrate-auto',
-            label: tracks[i].name || tracks[i].label,
+            label: combinedTracks[i].label || combinedTracks[i].name,
             id: `${i}`,
-            order: sortOrder,
-            isActive: false,
-            data: tracks,
-            callback: (data, button) => {
-              if (button.isActive) {
-                tracks[i].mode = 'disabled';
-                captions.setActiveItem();
-                return;
-              }
-              if (i === 0 && tracks.length > 1) {
-                tracks[1].mode = 'disabled';
-              } else if (tracks.length > 1) {
-                tracks[0].mode = 'disabled';
-              }
-              tracks[i].mode = 'showing';
-              captions.setActiveItem(button);
-              player.trigger('embeddedCaptionSwitched', data);
-            },
-          });
-        }
-        captions.addItems(items);
-      }).catch((e)=>{
-        throw(e)
-      });
-    }
-  }
-
-  const setHlsSubs = () => {
-    if (sourceHandler.plugin.sardiusHLS.hls) {
-      const getTracks = new Promise((resolve) => {
-        sourceHandler.plugin.sardiusHLS.hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (event, data) => {
-          const newTracks = data.subtitleTracks;
-          resolve(newTracks);
-        });
-      });
-
-      getTracks.then((tracks) => {
-        const items = [];
-        for (let i = 0; i < tracks.length; i += 1) {
-          let active = false;
-          if (tracks[i].default === true) {
-            sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
-            active = true;
-          }
-          items.push({
-            classes: 'sp-bitrate-auto',
-            label: tracks[i].name,
-            id: `${i}`,
-            order: i,
+            order: combinedTracks.length - i,
             isActive: active,
-            data: tracks[i],
+            data: combinedTracks,
             callback: (data, button) => {
               if (button.isActive) {
                 sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = -1;
@@ -182,13 +157,51 @@ sardius.menu("closed-captions",function(player, options){
                 sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = false;
                 return;
               }
-              captions.setActiveItem(button);
+              for (let i = 0; i < combinedTracks.length; i += 1) {
+                if (combinedTracks[i].mode !== typeof undefined) {
+                  combinedTracks[i].mode = 'disabled';
+                }
+              }
               sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
               sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = i;
+              captions.setActiveItem(button);
               player.trigger('audioTrackSwitched', data);
             },
           });
+        } else if (combinedTracks[i].kind === 'captions') {
+            let sortOrder = combinedTracks.length - i;
+            if (combinedTracks[i].language === 'es') {
+              sortOrder = -1;
+            }
+            items.push({
+              classes: 'sp-bitrate-auto',
+              label: combinedTracks[i].name || combinedTracks[i].label,
+              id: `${i}`,
+              order: sortOrder,
+              isActive: false,
+              data: combinedTracks,
+              callback: (data, button) => {
+                if (button.isActive) {
+                  combinedTracks[i].mode = 'disabled';
+                  captions.setActiveItem();
+                  return;
+                }
+                if (i === 0 && combinedTracks.length > 1) {
+                  combinedTracks[1].mode = 'disabled';
+                } else if (combinedTracks.length > 1) {
+                  combinedTracks[0].mode = 'disabled';
+                }
+                combinedTracks[i].mode = 'showing';
+                sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = -1;
+                sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = false;
+                captions.setActiveItem(button);
+                player.trigger('embeddedCaptionSwitched', data);
+              },
+            });
+        } else if (combinedTracks[i].kind === 'metadata') {
+          continue;
         }
+      }
         captions.addItems(items);
       });
     }
@@ -196,7 +209,7 @@ sardius.menu("closed-captions",function(player, options){
 
   player.on("settingsMenu-SourceHandler-change",(event, SourceHandler) => {
     sourceHandler=SourceHandler;
-    setEmbeddedCaptions();
+    // setEmbeddedCaptions();
     setHlsSubs();
     setCaptions();
   })
