@@ -60,7 +60,7 @@ sardius.menu("closed-captions",function(player, options){
     var lables = [];
     var items  = [];
 
-    if(sourceHandler.captions ){
+    if(sourceHandler.captions){
       for(var i=0; i<sourceHandler.captions.length; i++){
         var cc = sourceHandler.captions[i]
         if(isSafari){
@@ -87,7 +87,7 @@ sardius.menu("closed-captions",function(player, options){
             }
             captions.setActiveItem(button)
             setCaption(data)
-            player.trigger('remoteTrackSwitched', data[i])
+            player.trigger('remoteTrackUpdated', data)
           }
         })
 
