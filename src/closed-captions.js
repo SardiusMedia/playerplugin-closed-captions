@@ -87,6 +87,7 @@ sardius.menu("closed-captions",function(player, options){
             }
             captions.setActiveItem(button)
             setCaption(data)
+            player.trigger('remoteTrackSwitched', data[i])
           }
         })
 
@@ -95,7 +96,7 @@ sardius.menu("closed-captions",function(player, options){
     }
   }
 
-  const setHlsSubs = () => {
+  const setHlsTextTracks = () => {
     if (sourceHandler.plugin.sardiusHLS.hls) {
 
       const getTracks = new Promise((resolve) => {
@@ -165,7 +166,7 @@ sardius.menu("closed-captions",function(player, options){
               sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = true;
               sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = i;
               captions.setActiveItem(button);
-              player.trigger('audioTrackSwitched', data);
+              player.trigger('hlsSubtitleTrackUpdated', data[i]);
             },
           });
         } else if (combinedTracks[i].kind === 'captions') {
@@ -195,7 +196,7 @@ sardius.menu("closed-captions",function(player, options){
                 sourceHandler.plugin.sardiusHLS.hls.subtitleTrack = -1;
                 sourceHandler.plugin.sardiusHLS.hls.subtitleDisplay = false;
                 captions.setActiveItem(button);
-                player.trigger('embeddedCaptionSwitched', data);
+                player.trigger('hlsCaptionsUpdated', data[i]);
               },
             });
         } else if (combinedTracks[i].kind === 'metadata') {
@@ -209,8 +210,7 @@ sardius.menu("closed-captions",function(player, options){
 
   player.on("settingsMenu-SourceHandler-change",(event, SourceHandler) => {
     sourceHandler=SourceHandler;
-    // setEmbeddedCaptions();
-    setHlsSubs();
+    setHlsTextTracks();
     setCaptions();
   })
 
