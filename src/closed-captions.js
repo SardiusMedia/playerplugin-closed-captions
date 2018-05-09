@@ -209,6 +209,7 @@ sardius.menu("closed-captions",function(player, options){
   };
 
   player.on("settingsMenu-SourceHandler-change",(event, SourceHandler) => {
+    menu.hide()
     sourceHandler=SourceHandler;
     setHlsTextTracks();
     setCaptions();
