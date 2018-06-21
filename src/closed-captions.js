@@ -6,8 +6,10 @@ sardius.menu("closed-captions",function(player, options){
   var activeTrack;
   var ccEl;
   var userAgent  = navigator.userAgent;
+  const isIpad = navigator.userAgent.indexOf('iPad') !== -1;
   var isSafari   = userAgent.indexOf("Safari") !== -1 && userAgent.indexOf("Chrome") === -1 ;
   var isIphone   = isSafari && (userAgent.indexOf("iPhone") !== -1 || userAgent.indexOf("iPod") !== -1)
+  const isSafariIos = isIphone || (isSafari && isIpad);
   isSafari = isSafari && isIphone
   var getMenuLabel = (defaultLabel)=> {
     var menuLabels = sourceHandler.options.labels
@@ -24,6 +26,28 @@ sardius.menu("closed-captions",function(player, options){
     title:"Closed Captions",
     minItems:1,
   })
+
+  /*
+  * TODO: fix menu group functionality
+  * This is a fix for the positioning of the CC icon for iOS Safari live streams
+  */
+  if (isSafariIos) {
+    if (typeof player.playerManager.plugin.options.asset.assets.stream !== 'undefined') {
+      console.log('captionAdded');
+      menu.el_.classList.add('sp-captions-ios-live');
+    }
+    // menu.el_.addEventListener('touchstart', (event) => {
+    //   console.log('touch');
+    //   const items = menu.el_.childNodes;
+    //   if (event.target.classList.contains('sp-menu')) {
+    //     console.log('HandleClasses');
+    //     for (let i = 0; i < items.length; i += 1) {
+    //       items[i].classList.toggle('vjs-lock-showing');
+    //     }
+    //   }
+    // });
+  }
+  /* eslint-enable no-underscore-dangle */
 
   var setCaption = (track)=>{
     if(isSafari){
