@@ -128,7 +128,7 @@ const closedCaptions = videojs.extend(Component, {
         if (sourceHandler.plugin.streamHandler.lib.hls) {
 
           const getTracks = new Promise((resolve) => {
-            player.on('SP_SUBTITLE_UPDATED_LIST', (event, data) => {
+            player.on('SP_TEXT_TRACK_UPDATED_LIST', (event, data) => {
               const newTracks = data.subtitleTracks;
               resolve(newTracks);
             });
