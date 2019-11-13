@@ -9,7 +9,7 @@ const closedCaptions = videojs.extend(Component, {
     var activeTrack;
     var ccEl;
     var userAgent  = navigator.userAgent;
-    const isIpad = navigator.userAgent.indexOf('iPad') !== -1;
+    const isIpad = userAgent.indexOf('iPad') !== -1 || (userAgent.indexOf('Macintosh') !== -1 && 'ontouchend' in document);
     var isSafari   = userAgent.indexOf("Safari") !== -1 && userAgent.indexOf("Chrome") === -1 ;
     var isIphone   = isSafari && (userAgent.indexOf("iPhone") !== -1 || userAgent.indexOf("iPod") !== -1)
     const isSafariIos = isIphone || (isSafari && isIpad);
